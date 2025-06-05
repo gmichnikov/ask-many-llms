@@ -15,7 +15,14 @@ csrf = CSRFProtect()
 
 def create_app():
     # Validate required environment variables
-    required_vars = ['DATABASE_URL', 'SECRET_KEY', 'ADMIN_EMAIL']
+    required_vars = [
+        'DATABASE_URL', 
+        'SECRET_KEY', 
+        'ADMIN_EMAIL',
+        'OPENAI_API_KEY',
+        'ANTHROPIC_API_KEY',
+        'GOOGLE_API_KEY'
+    ]
     for var in required_vars:
         if not os.getenv(var):
             raise ValueError(f"Required environment variable {var} is not set")
@@ -35,13 +42,15 @@ def create_app():
     from app.routes.main import main_bp
     from app.routes.auth import auth_bp
     from app.routes.admin import admin_bp
+    from app.routes.questions import bp as questions_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(questions_bp, url_prefix='/questions')
     
     # Import models to ensure they're known to Flask-SQLAlchemy
-    from app.models import User, LogEntry
+    from app.models import User, LogEntry, Question, Response
     
     # User loader for Flask-Login
     @login_manager.user_loader

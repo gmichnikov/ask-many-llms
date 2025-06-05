@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Length, Email, ValidationError
 import pytz
 from app.models import User
@@ -24,3 +24,10 @@ class AdminPasswordResetForm(FlaskForm):
     email = SelectField('Select User', choices=[])
     new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=4)])
     submit = SubmitField('Reset Password')
+
+class QuestionForm(FlaskForm):
+    content = TextAreaField('Your Question', validators=[
+        DataRequired(),
+        Length(min=10, max=1000, message='Question must be between 10 and 1000 characters')
+    ])
+    submit = SubmitField('Ask Question')
