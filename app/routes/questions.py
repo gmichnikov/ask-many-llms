@@ -10,7 +10,7 @@ llm_service = LLMService()
 
 @bp.route('/ask', methods=['GET', 'POST'])
 @login_required
-async def ask_question():
+def ask_question():
     form = QuestionForm()
     if form.validate_on_submit():
         # Check if user has enough credits
@@ -31,7 +31,7 @@ async def ask_question():
         
         try:
             # Get responses from LLMs
-            responses = await llm_service.get_responses(question.content)
+            responses = llm_service.get_responses(question.content)
             
             # Save responses
             for response_data in responses:

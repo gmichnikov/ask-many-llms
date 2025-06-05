@@ -11,7 +11,7 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(128))
     time_zone = db.Column(db.String(50), nullable=False, default='UTC')
     is_admin = db.Column(db.Boolean, default=False)
-    credits = db.Column(db.Integer, default=10)  # Start with 10 free credits
+    credits = db.Column(db.Integer, nullable=False, default=10)  # Start with 10 free credits
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -20,11 +20,11 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
     
     def has_sufficient_credits(self, required_credits):
-        return self.credits >= required_credits
+        return (self.credits or 0) >= required_credits
     
     def deduct_credits(self, amount):
         if self.has_sufficient_credits(amount):
-            self.credits -= amount
+            self.credits = (self.credits or 0) - amount
             return True
         return False
 

@@ -24,7 +24,7 @@
                 </div>
                 <div class="card-body">
                     <div class="response-content">
-                        {{ response.content | safe | nl2br }}
+                        {{ response.content | replace('\n', '<br>') | safe }}
                     </div>
                     <small class="text-muted">Responded on {{ response.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                 </div>

@@ -1,24 +1,64 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block title %}Home{% endblock %}
 
 {% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 mb-4">Welcome to Ask Many LLMs</h1>
+            <p class="lead mb-4">
+                Get multiple perspectives on your questions by asking different AI models simultaneously.
+                Compare responses from GPT-4, Claude, and Gemini in one place.
+            </p>
 
-    <h1>Home</h1>
+            {% if logged_in %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Ready to ask a question?</h5>
+                        <p class="card-text">You have {{ current_user.credits }} credits available.</p>
+                        <a href="{{ url_for('questions.ask_question') }}" class="btn btn-primary">Ask a Question</a>
+                        <a href="{{ url_for('questions.list_questions') }}" class="btn btn-outline-primary">View My Questions</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Get Started</h5>
+                        <p class="card-text">Sign up or log in to start asking questions.</p>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Register</a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">Login</a>
+                    </div>
+                </div>
+            {% endif %}
 
-    <a href="{{ url_for('auth.login') }}">Login</a> |
-    <a href="{{ url_for('auth.register') }}">Register</a>
-
-    {% if logged_in %}
-        <p>You are logged in as {{ email }}</p>
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
-    {% else %}
-        <p>No one is logged in</p>
-    {% endif %}
-
-    {% if logged_in and current_user.is_admin %}
-        <a href="{{ url_for('admin.reset_password') }}">Admin: Reset Passwords</a> | 
-        <a href="{{ url_for('admin.view_logs') }}">View Logs</a>
-    {% endif %}
-
+            <div class="row mt-5">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Multiple Models</h5>
+                            <p class="card-text">Get responses from GPT-4, Claude, and Gemini all at once.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Compare Responses</h5>
+                            <p class="card-text">Easily compare different AI perspectives on your questions.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Credit System</h5>
+                            <p class="card-text">Start with 10 free credits. Each question costs 1 credit.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
