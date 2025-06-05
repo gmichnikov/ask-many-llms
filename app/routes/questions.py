@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import Question, Response
+from app.models import Question, Response, LogEntry
 from app.forms import QuestionForm
 from app.services.llm_service import LLMService
 
@@ -18,13 +18,21 @@ def ask_question():
             flash('You do not have enough credits to ask a question.', 'error')
             return redirect(url_for('questions.ask_question'))
         
-        # Create the question
+        # Create new question
         question = Question(
-            content=form.content.data,
             user_id=current_user.id,
+            content=form.content.data,
             credits_used=1
         )
         db.session.add(question)
+        
+        # Log the question being asked
+        log_entry = LogEntry(
+            category='Ask Question',
+            actor_id=current_user.id,
+            description=f"{form.content.data[:100]}{'...' if len(form.content.data) > 100 else ''}"
+        )
+        db.session.add(log_entry)
         
         # Deduct credits
         current_user.deduct_credits(1)
