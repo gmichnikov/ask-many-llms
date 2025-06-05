@@ -44,13 +44,16 @@ class Question(db.Model):
 class Response(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
-    llm_name = db.Column(db.String(50), nullable=False)  # e.g., 'gpt-4', 'claude', etc.
+    llm_name = db.Column(db.String(50), nullable=False)  # e.g., 'GPT-4.1-mini', 'Claude', 'Gemini'
+    model_name = db.Column(db.String(100), nullable=False)  # e.g., 'gpt-4.1-mini', 'claude-3-5-haiku-latest', 'gemini-2.0-flash'
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    tokens_used = db.Column(db.Integer, nullable=True)
+    input_tokens = db.Column(db.Integer, nullable=True)
+    output_tokens = db.Column(db.Integer, nullable=True)
+    total_tokens = db.Column(db.Integer, nullable=True)
     
     def __repr__(self):
-        return f'<Response from {self.llm_name} for Question {self.question_id}>'
+        return f'<Response from {self.llm_name} ({self.model_name}) for Question {self.question_id}>'
 
 class LogEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
