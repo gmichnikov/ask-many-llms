@@ -15,7 +15,7 @@ PRICING = {
     'gpt-4.1-mini': {'input': 0.40, 'output': 1.60},
     'gpt-4.1-nano': {'input': 0.1, 'output': 0.4},
     'gpt-4o-mini': {'input': 0.15, 'output': 0.6},
-    # 'o3': {'input': 10.0, 'output': 40.0},  # Temporarily disabled
+    # 'o3': {'input': 10.0, 'output': 40.0},  # Disabled: Requires organization verification at https://platform.openai.com/settings/organization/general
     'o4-mini': {'input': 1.1, 'output': 4.4},
     
     # Anthropic Models
@@ -39,6 +39,7 @@ MAX_OUTPUT_TOKENS = {
     'gpt-4.1-mini': min(62500, 16384),
     'gpt-4.1-nano': min(250000, 16384),
     'gpt-4o-mini': min(166667, 16384),
+    # 'o3': min(250000, 16384),  # Disabled: Requires organization verification at https://platform.openai.com/settings/organization/general
     'o4-mini': min(22727, 16384),
     
     # Anthropic Models
@@ -64,7 +65,7 @@ MODEL_MAPPINGS = {
     'GPT-4.1 Mini': 'gpt-4.1-mini',
     'GPT-4.1 Nano': 'gpt-4.1-nano',
     'GPT-4o Mini': 'gpt-4o-mini',
-    # 'O3': 'o3',  # Temporarily disabled
+    # 'O3': 'o3',  # Disabled: Requires organization verification at https://platform.openai.com/settings/organization/general
     'O4 Mini': 'o4-mini',
     
     # Anthropic Models
