@@ -60,6 +60,7 @@ class Response(db.Model):
     total_tokens = db.Column(db.Integer, nullable=True)
     input_cost = db.Column(db.Float, nullable=True)
     output_cost = db.Column(db.Float, nullable=True)
+    response_time = db.Column(db.Float, nullable=True)  # Time in seconds
     
     def __repr__(self):
         return f'<Response from {self.llm_name} ({self.model_name}) for Question {self.question_id}>'

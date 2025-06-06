@@ -53,7 +53,8 @@ def ask_question():
                 output_tokens=metadata['output_tokens'],
                 total_tokens=metadata.get('total_tokens', metadata['input_tokens'] + metadata['output_tokens']),
                 input_cost=metadata.get('input_cost', 0),
-                output_cost=metadata.get('output_cost', 0)
+                output_cost=metadata.get('output_cost', 0),
+                response_time=metadata.get('response_time')
             )
             db.session.add(response_record)
         
@@ -99,7 +100,8 @@ def view_question(question_id):
                 output_tokens=summary['metadata']['output_tokens'],
                 total_tokens=summary['metadata']['total_tokens'],
                 input_cost=summary['metadata']['input_cost'],
-                output_cost=summary['metadata']['output_cost']
+                output_cost=summary['metadata']['output_cost'],
+                response_time=summary['metadata'].get('response_time')
             )
             
             # Save summary response and update question

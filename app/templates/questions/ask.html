@@ -139,6 +139,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearAllBtn = document.getElementById('clearAll');
     const maxModels = 5;
     
+    // Add keyboard shortcut for Command+Enter/Ctrl+Enter
+    const questionTextarea = document.querySelector('textarea[name="content"]');
+    questionTextarea.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (!submitBtn.disabled) {
+                submitBtn.click();
+            }
+        }
+    });
+    
     function updateSelectedCount() {
         const selected = document.querySelectorAll('.model-checkbox:checked');
         selectedCount.textContent = `${selected.length} models selected`;

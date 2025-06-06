@@ -3,6 +3,7 @@ from typing import List, Dict
 import openai
 from anthropic import Anthropic
 import google.generativeai as genai
+import time
 
 # Pricing per 1M tokens
 # Documentation:
@@ -154,6 +155,8 @@ class LLMService:
         """Get response from OpenAI model."""
         max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
         
+        start_time = time.time()
+        
         # Use different parameter name for O4-mini model
         if model_name == 'o4-mini':
             response = self.openai_client.chat.completions.create(
@@ -174,6 +177,8 @@ class LLMService:
                 max_tokens=max_tokens
             )
         
+        response_time = time.time() - start_time
+        
         input_tokens = response.usage.prompt_tokens
         output_tokens = response.usage.completion_tokens
         total_tokens = response.usage.total_tokens
@@ -192,13 +197,17 @@ class LLMService:
                 'input_cost': input_cost,
                 'output_cost': output_cost,
                 'model': model_name,
-                'finish_reason': response.choices[0].finish_reason
+                'finish_reason': response.choices[0].finish_reason,
+                'response_time': response_time
             }
         }
 
     def _get_claude_response(self, question: str, model_name: str) -> Dict:
         """Get response from Claude model."""
         max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
+        
+        start_time = time.time()
+        
         response = self.anthropic.messages.create(
             model=model_name,
             max_tokens=max_tokens,
@@ -206,6 +215,8 @@ class LLMService:
                 {"role": "user", "content": question}
             ]
         )
+        
+        response_time = time.time() - start_time
         
         input_tokens = response.usage.input_tokens
         output_tokens = response.usage.output_tokens
@@ -225,7 +236,8 @@ class LLMService:
                 'input_cost': input_cost,
                 'output_cost': output_cost,
                 'model': model_name,
-                'stop_reason': response.stop_reason
+                'stop_reason': response.stop_reason,
+                'response_time': response_time
             }
         }
 
@@ -235,10 +247,16 @@ class LLMService:
             raise Exception(f"Gemini model '{model_name}' is not available.")
         
         max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
+        
+        start_time = time.time()
+        
         response = self.gemini_models[model_name].generate_content(
             question,
             generation_config={"max_output_tokens": max_tokens}
         )
+        
+        response_time = time.time() - start_time
+        
         token_count = getattr(response, 'token_count', 0)
         
         # For Gemini, we'll estimate input/output tokens as 50/50 split
@@ -259,7 +277,8 @@ class LLMService:
                 'input_cost': input_cost,
                 'output_cost': output_cost,
                 'model': model_name,
-                'safety_ratings': getattr(response, 'safety_ratings', None)
+                'safety_ratings': getattr(response, 'safety_ratings', None),
+                'response_time': response_time
             }
         }
 

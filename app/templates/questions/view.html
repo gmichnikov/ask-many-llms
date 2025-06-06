@@ -39,7 +39,12 @@
                             </div>
                             <div class="col-md-4">
                                 <small class="text-muted">
-                                    <strong>Cost:</strong> ${{ "%.6f"|format(summary_response.input_cost + summary_response.output_cost) }}
+                                    <strong>Response Time:</strong> 
+                                    {% if summary_response.response_time is not none %}
+                                        {{ "%.1f"|format(summary_response.response_time) }}s
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
                                 </small>
                             </div>
                         </div>
@@ -58,15 +63,15 @@
                         <div class="btn-group ms-2">
                             {% if response.llm_name.startswith('GPT') %}
                                 <a href="https://openai.com/api/pricing/" target="_blank" class="btn btn-sm btn-outline-secondary" title="OpenAI Pricing">
-                                    <i class="fas fa-info-circle"></i>
+                                    <i class="fas fa-dollar-sign"></i>
                                 </a>
                             {% elif response.llm_name.startswith('Claude') %}
                                 <a href="https://www.anthropic.com/pricing#api" target="_blank" class="btn btn-sm btn-outline-secondary" title="Anthropic Pricing">
-                                    <i class="fas fa-info-circle"></i>
+                                    <i class="fas fa-dollar-sign"></i>
                                 </a>
                             {% elif response.llm_name.startswith('Gemini') %}
                                 <a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" class="btn btn-sm btn-outline-secondary" title="Gemini Pricing">
-                                    <i class="fas fa-info-circle"></i>
+                                    <i class="fas fa-dollar-sign"></i>
                                 </a>
                             {% endif %}
                         </div>
@@ -95,12 +100,22 @@
                             </div>
                         </div>
                         <div class="row mt-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <small class="text-muted">
                                     <strong>Model:</strong> {{ response.model_name }}
                                 </small>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <strong>Response Time:</strong> 
+                                    {% if response.response_time is not none %}
+                                        {{ "%.1f"|format(response.response_time) }}s
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="col-md-4">
                                 <small class="text-muted">
                                     {% if response.llm_name == 'GPT-4.1-mini' %}
                                         <strong>Finish Reason:</strong> {{ response.metadata.finish_reason }}
