@@ -13,9 +13,10 @@
                         You currently have {{ current_user.credits }} credits.
                         Each question costs 1 credit.
                     </p>
-                    <form method="POST">
+                    <form method="POST" id="questionForm">
                         {{ form.hidden_tag() }}
-                        <div class="form-group">
+                        
+                        <div class="form-group mb-4">
                             {{ form.content.label(class="form-label") }}
                             {{ form.content(class="form-control", rows=5) }}
                             {% if form.content.errors %}
@@ -24,8 +25,26 @@
                                 {% endfor %}
                             {% endif %}
                         </div>
+
+                        <div class="form-group mb-4">
+                            <label class="form-label">Select Models (up to 5)</label>
+                            <div class="model-selection">
+                                <div class="selected-models mb-2">
+                                    <div class="d-flex flex-wrap gap-2" id="selectedModels"></div>
+                                </div>
+                                <div class="model-options">
+                                    {{ form.models(class="form-select", size="10", multiple=true) }}
+                                    {% if form.models.errors %}
+                                        {% for error in form.models.errors %}
+                                            <span class="text-danger">{{ error }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-3">
-                            {{ form.submit(class="btn btn-primary") }}
+                            {{ form.submit(class="btn btn-primary", id="submitBtn") }}
                         </div>
                     </form>
                 </div>
@@ -33,4 +52,100 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modelsSelect = document.querySelector('select[name="models"]');
+    const selectedModelsDiv = document.getElementById('selectedModels');
+    const submitBtn = document.getElementById('submitBtn');
+    const maxModels = 5;
+    
+    function updateSelectedModels() {
+        const selected = Array.from(modelsSelect.selectedOptions);
+        selectedModelsDiv.innerHTML = '';
+        
+        selected.forEach(option => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary d-flex align-items-center';
+            badge.innerHTML = `
+                ${option.text}
+                <button type="button" class="btn-close btn-close-white ms-2" 
+                        style="font-size: 0.5rem;" 
+                        data-model="${option.value}"></button>
+            `;
+            selectedModelsDiv.appendChild(badge);
+        });
+        
+        // Update submit button state
+        submitBtn.disabled = selected.length === 0;
+    }
+    
+    // Handle model selection
+    modelsSelect.addEventListener('change', function() {
+        const selected = Array.from(this.selectedOptions);
+        if (selected.length > maxModels) {
+            // If more than max models are selected, keep only the most recently selected ones
+            const excess = selected.length - maxModels;
+            for (let i = 0; i < excess; i++) {
+                selected[i].selected = false;
+            }
+        }
+        updateSelectedModels();
+    });
+    
+    // Handle model removal via badges
+    selectedModelsDiv.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-close')) {
+            const modelValue = e.target.dataset.model;
+            const option = Array.from(modelsSelect.options).find(opt => opt.value === modelValue);
+            if (option) {
+                option.selected = false;
+                updateSelectedModels();
+            }
+        }
+    });
+    
+    // Initial update
+    updateSelectedModels();
+});
+</script>
+
+<style>
+.model-selection {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+.model-options {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.model-options select {
+    border: none;
+    padding: 0;
+}
+
+.model-options select option {
+    padding: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.model-options select option:last-child {
+    border-bottom: none;
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.btn-close {
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+}
+</style>
 {% endblock %} 

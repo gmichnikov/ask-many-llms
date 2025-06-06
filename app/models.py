@@ -51,6 +51,8 @@ class Response(db.Model):
     input_tokens = db.Column(db.Integer, nullable=True)
     output_tokens = db.Column(db.Integer, nullable=True)
     total_tokens = db.Column(db.Integer, nullable=True)
+    input_cost = db.Column(db.Float, nullable=True)
+    output_cost = db.Column(db.Float, nullable=True)
     
     def __repr__(self):
         return f'<Response from {self.llm_name} ({self.model_name}) for Question {self.question_id}>'

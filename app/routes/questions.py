@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.models import Question, Response, LogEntry
 from app.forms import QuestionForm
-from app.services.llm_service import LLMService
+from app.services.llm_service import LLMService, PRICING
 
 bp = Blueprint('questions', __name__)
 llm_service = LLMService()
@@ -13,55 +13,47 @@ llm_service = LLMService()
 def ask_question():
     form = QuestionForm()
     if form.validate_on_submit():
-        # Check if user has enough credits
-        if not current_user.has_sufficient_credits(1):
+        if current_user.credits < 1:
             flash('You do not have enough credits to ask a question.', 'error')
-            return redirect(url_for('questions.ask_question'))
+            return redirect(url_for('main.index'))
         
-        # Create new question
+        # Create the question
         question = Question(
-            user_id=current_user.id,
             content=form.content.data,
-            credits_used=1
+            user_id=current_user.id
         )
         db.session.add(question)
+        db.session.commit()
         
-        # Log the question being asked
-        log_entry = LogEntry(
-            category='Ask Question',
-            actor_id=current_user.id,
-            description=f"{form.content.data[:100]}{'...' if len(form.content.data) > 100 else ''}"
+        # Get responses from selected models
+        llm_service = LLMService()
+        responses = llm_service.get_responses(
+            question=form.content.data,
+            selected_models=form.models.data
         )
-        db.session.add(log_entry)
+        
+        # Create response records
+        for response in responses:
+            metadata = response['metadata']
+            response_record = Response(
+                question_id=question.id,
+                content=response['content'],
+                llm_name=response['llm_name'],
+                model_name=metadata.get('model', response['llm_name']),
+                input_tokens=metadata['input_tokens'],
+                output_tokens=metadata['output_tokens'],
+                total_tokens=metadata.get('total_tokens', metadata['input_tokens'] + metadata['output_tokens']),
+                input_cost=metadata.get('input_cost', 0),
+                output_cost=metadata.get('output_cost', 0)
+            )
+            db.session.add(response_record)
         
         # Deduct credits
-        current_user.deduct_credits(1)
+        current_user.credits -= 1
+        db.session.commit()
         
-        try:
-            # Get responses from LLMs
-            responses = llm_service.get_responses(question.content)
-            
-            # Save responses
-            for response_data in responses:
-                response = Response(
-                    question=question,
-                    llm_name=response_data['llm_name'],
-                    model_name=response_data['metadata'].get('model', response_data['llm_name']),
-                    content=response_data['content'],
-                    input_tokens=response_data['metadata']['input_tokens'],
-                    output_tokens=response_data['metadata']['output_tokens'],
-                    total_tokens=response_data['metadata']['total_tokens']
-                )
-                db.session.add(response)
-            
-            db.session.commit()
-            flash('Your question has been submitted and responses are ready!', 'success')
-            return redirect(url_for('questions.view_question', question_id=question.id))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'An error occurred: {str(e)}', 'error')
-            return redirect(url_for('questions.ask_question'))
+        flash('Your question has been submitted!', 'success')
+        return redirect(url_for('questions.view_question', question_id=question.id))
     
     return render_template('questions/ask.html', form=form)
 
@@ -74,31 +66,7 @@ def view_question(question_id):
         return redirect(url_for('main.index'))
     
     # Get responses for this question
-    responses = []
-    for response in question.responses:
-        # Calculate cost based on the model
-        cost = 0.0
-        if response.llm_name == 'OpenAI':
-            cost = (response.input_tokens / 1_000_000 * 0.40) + (response.output_tokens / 1_000_000 * 1.60)
-        elif response.llm_name == 'Claude':
-            cost = (response.input_tokens / 1_000_000 * 0.80) + (response.output_tokens / 1_000_000 * 4.00)
-        elif response.llm_name == 'Gemini':
-            cost = (response.input_tokens / 1_000_000 * 0.10) + (response.output_tokens / 1_000_000 * 0.40)
-        
-        responses.append({
-            'llm_name': response.llm_name,
-            'content': response.content,
-            'metadata': {
-                'input_tokens': response.input_tokens,
-                'output_tokens': response.output_tokens,
-                'total_tokens': response.total_tokens,
-                'cost': cost,
-                'model': response.model_name,
-                'finish_reason': None,
-                'stop_reason': None,
-                'safety_ratings': None
-            }
-        })
+    responses = question.responses
     
     return render_template('questions/view.html', question=question, responses=responses)
 

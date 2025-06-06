@@ -10,49 +10,73 @@ import google.generativeai as genai
 # - Anthropic: https://www.anthropic.com/pricing#api
 # - Google: https://ai.google.dev/gemini-api/docs/pricing
 PRICING = {
-    'gpt-4.1-mini': {
-        'input': 0.40,  # $0.40 per 1M input tokens
-        'output': 1.60  # $1.60 per 1M output tokens
-    },
-    'claude-3-5-haiku-latest': {
-        'input': 0.80,  # $0.80 per 1M input tokens
-        'output': 4.00  # $4.00 per 1M output tokens
-    },
-    'gemini-2.0-flash': {
-        'input': 0.10,  # $0.10 per 1M input tokens
-        'output': 0.40  # $0.40 per 1M output tokens
-    }
+    # OpenAI Models
+    'gpt-4.1': {'input': 2.0, 'output': 8.0},
+    'gpt-4.1-mini': {'input': 0.40, 'output': 1.60},
+    'gpt-4.1-nano': {'input': 0.1, 'output': 0.4},
+    'gpt-4o-mini': {'input': 0.15, 'output': 0.6},
+    # 'o3': {'input': 10.0, 'output': 40.0},  # Temporarily disabled
+    'o4-mini': {'input': 1.1, 'output': 4.4},
+    
+    # Anthropic Models
+    'claude-3-5-haiku-latest': {'input': 0.8, 'output': 4.0},
+    'claude-3-7-sonnet-latest': {'input': 3.0, 'output': 15.0},
+    'claude-sonnet-4-20250514': {'input': 3.0, 'output': 15.0},
+    'claude-opus-4-20250514': {'input': 15.0, 'output': 75.0},
+    
+    # Google Models
+    'gemini-2.5-flash-preview-05-20': {'input': 0.15, 'output': 0.6},
+    'gemini-2.5-pro-preview-06-05': {'input': 1.25, 'output': 10.0},
+    'gemini-2.0-flash': {'input': 0.1, 'output': 0.4},
+    'gemini-1.5-flash': {'input': 0.075, 'output': 0.3},
+    'gemini-1.5-pro': {'input': 1.25, 'output': 5.0}
+}
+
+__all__ = ['LLMService', 'PRICING', 'MODEL_MAPPINGS']
+
+# Model display names and their corresponding API model names
+MODEL_MAPPINGS = {
+    # OpenAI Models
+    'GPT-4.1': 'gpt-4.1',
+    'GPT-4.1 Mini': 'gpt-4.1-mini',
+    'GPT-4.1 Nano': 'gpt-4.1-nano',
+    'GPT-4o Mini': 'gpt-4o-mini',
+    # 'O3': 'o3',  # Temporarily disabled
+    'O4 Mini': 'o4-mini',
+    
+    # Anthropic Models
+    'Claude 3.5 Haiku': 'claude-3-5-haiku-latest',
+    'Claude 3.7 Sonnet': 'claude-3-7-sonnet-latest',
+    'Claude Sonnet 4': 'claude-sonnet-4-20250514',
+    'Claude Opus 4': 'claude-opus-4-20250514',
+    
+    # Google Models
+    'Gemini 2.5 Flash': 'gemini-2.5-flash-preview-05-20',
+    'Gemini 2.5 Pro': 'gemini-2.5-pro-preview-06-05',
+    'Gemini 2.0 Flash': 'gemini-2.0-flash',
+    'Gemini 1.5 Flash': 'gemini-1.5-flash',
+    'Gemini 1.5 Pro': 'gemini-1.5-pro'
 }
 
 class LLMService:
     def __init__(self):
-        # Initialize OpenAI (new API)
+        # Initialize OpenAI
         self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        self.openai_model = 'gpt-4.1-mini'
         
         # Initialize Anthropic
         self.anthropic = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-        self.anthropic_model = 'claude-3-5-haiku-latest'
         
         # Initialize Google Gemini
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
-        self.gemini_model_name = 'gemini-2.0-flash'
-        try:
-            self.gemini_model = genai.GenerativeModel(self.gemini_model_name)
-        except Exception as e:
-            print(f"Error initializing Gemini model '{self.gemini_model_name}': {e}")
-            self.gemini_model = None
+        self.gemini_models = {}
+        for model_name in [m for m in MODEL_MAPPINGS.values() if m.startswith('gemini')]:
+            try:
+                self.gemini_models[model_name] = genai.GenerativeModel(model_name)
+            except Exception as e:
+                print(f"Error initializing Gemini model '{model_name}': {e}")
 
     def _calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
-        """Calculate the cost of a response based on token usage.
-        
-        Prices are per 1M tokens, so we divide by 1,000,000 to get the cost.
-        
-        Pricing documentation:
-        - OpenAI: https://openai.com/api/pricing/
-        - Anthropic: https://www.anthropic.com/pricing#api
-        - Google: https://ai.google.dev/gemini-api/docs/pricing
-        """
+        """Calculate the cost of a response based on token usage."""
         if model not in PRICING:
             return 0.0
         
@@ -61,89 +85,47 @@ class LLMService:
         output_cost = (output_tokens / 1_000_000) * pricing['output']
         return input_cost + output_cost
 
-    def get_responses(self, question: str) -> List[Dict]:
-        """Get responses from multiple LLMs for a given question."""
+    def get_responses(self, question: str, selected_models: List[str]) -> List[Dict]:
+        """Get responses from selected LLMs for a given question."""
         responses = []
         
-        # Get GPT-4 response
-        try:
-            gpt_response = self._get_gpt4_response(question)
-            responses.append({
-                'llm_name': 'OpenAI',
-                'content': gpt_response['content'],
-                'metadata': gpt_response['metadata']
-            })
-        except Exception as e:
-            responses.append({
-                'llm_name': 'OpenAI',
-                'content': f"Error: {str(e)}",
-                'metadata': {
-                    'input_tokens': 0,
-                    'output_tokens': 0,
-                    'total_tokens': 0,
-                    'cost': 0.0,
-                    'model': self.openai_model,
-                    'finish_reason': 'error'
-                }
-            })
-
-        # Get Claude response
-        try:
-            claude_response = self._get_claude_response(question)
-            responses.append({
-                'llm_name': 'Claude',
-                'content': claude_response['content'],
-                'metadata': claude_response['metadata']
-            })
-        except Exception as e:
-            responses.append({
-                'llm_name': 'Claude',
-                'content': f"Error: {str(e)}",
-                'metadata': {
-                    'input_tokens': 0,
-                    'output_tokens': 0,
-                    'total_tokens': 0,
-                    'cost': 0.0,
-                    'model': self.anthropic_model,
-                    'stop_reason': 'error'
-                }
-            })
-
-        # Get Gemini response
-        try:
-            gemini_response = self._get_gemini_response(question)
-            responses.append({
-                'llm_name': 'Gemini',
-                'content': gemini_response['content'],
-                'metadata': gemini_response['metadata']
-            })
-        except Exception as e:
-            # Try to list available models for debugging
+        for display_name in selected_models:
+            model_name = MODEL_MAPPINGS[display_name]
             try:
-                available_models = genai.list_models()
-                model_names = [m.name for m in available_models]
-                error_msg = f"Error: {str(e)}\nAvailable Gemini models: {model_names}"
-            except Exception as e2:
-                error_msg = f"Error: {str(e)}\nAlso failed to list Gemini models: {str(e2)}"
-            responses.append({
-                'llm_name': 'Gemini',
-                'content': error_msg,
-                'metadata': {
-                    'input_tokens': 0,
-                    'output_tokens': 0,
-                    'total_tokens': 0,
-                    'cost': 0.0,
-                    'model': self.gemini_model_name,
-                    'safety_ratings': None
-                }
-            })
+                if model_name.startswith(('gpt', 'o')):  # Handle all OpenAI models
+                    response = self._get_gpt4_response(question, model_name)
+                elif model_name.startswith('claude'):
+                    response = self._get_claude_response(question, model_name)
+                elif model_name.startswith('gemini'):
+                    response = self._get_gemini_response(question, model_name)
+                else:
+                    continue
+                
+                responses.append({
+                    'llm_name': display_name,
+                    'content': response['content'],
+                    'metadata': response['metadata']
+                })
+            except Exception as e:
+                responses.append({
+                    'llm_name': display_name,
+                    'content': f"Error: {str(e)}",
+                    'metadata': {
+                        'input_tokens': 0,
+                        'output_tokens': 0,
+                        'total_tokens': 0,
+                        'cost': 0.0,
+                        'model': model_name,
+                        'error': str(e)
+                    }
+                })
 
         return responses
 
-    def _get_gpt4_response(self, question: str) -> Dict:
-        """Get response from GPT-4.1 mini using OpenAI's new API."""
+    def _get_gpt4_response(self, question: str, model_name: str) -> Dict:
+        """Get response from OpenAI model."""
         response = self.openai_client.chat.completions.create(
-            model=self.openai_model,
+            model=model_name,
             messages=[
                 {"role": "system", "content": "You are a helpful AI assistant."},
                 {"role": "user", "content": question}
@@ -154,22 +136,28 @@ class LLMService:
         output_tokens = response.usage.completion_tokens
         total_tokens = response.usage.total_tokens
         
+        # Calculate costs
+        pricing = PRICING.get(model_name, {})
+        input_cost = (input_tokens / 1_000_000) * pricing.get('input', 0)
+        output_cost = (output_tokens / 1_000_000) * pricing.get('output', 0)
+        
         return {
             'content': response.choices[0].message.content,
             'metadata': {
                 'input_tokens': input_tokens,
                 'output_tokens': output_tokens,
                 'total_tokens': total_tokens,
-                'cost': self._calculate_cost(self.openai_model, input_tokens, output_tokens),
-                'model': self.openai_model,
+                'input_cost': input_cost,
+                'output_cost': output_cost,
+                'model': model_name,
                 'finish_reason': response.choices[0].finish_reason
             }
         }
 
-    def _get_claude_response(self, question: str) -> Dict:
-        """Get response from Claude."""
+    def _get_claude_response(self, question: str, model_name: str) -> Dict:
+        """Get response from Claude model."""
         response = self.anthropic.messages.create(
-            model=self.anthropic_model,
+            model=model_name,
             max_tokens=1000,
             messages=[
                 {"role": "user", "content": question}
@@ -180,29 +168,40 @@ class LLMService:
         output_tokens = response.usage.output_tokens
         total_tokens = input_tokens + output_tokens
         
+        # Calculate costs
+        pricing = PRICING.get(model_name, {})
+        input_cost = (input_tokens / 1_000_000) * pricing.get('input', 0)
+        output_cost = (output_tokens / 1_000_000) * pricing.get('output', 0)
+        
         return {
             'content': response.content[0].text,
             'metadata': {
                 'input_tokens': input_tokens,
                 'output_tokens': output_tokens,
                 'total_tokens': total_tokens,
-                'cost': self._calculate_cost(self.anthropic_model, input_tokens, output_tokens),
-                'model': self.anthropic_model,
+                'input_cost': input_cost,
+                'output_cost': output_cost,
+                'model': model_name,
                 'stop_reason': response.stop_reason
             }
         }
 
-    def _get_gemini_response(self, question: str) -> Dict:
-        """Get response from Google Gemini."""
-        if not self.gemini_model:
-            raise Exception(f"Gemini model '{self.gemini_model_name}' is not available.")
+    def _get_gemini_response(self, question: str, model_name: str) -> Dict:
+        """Get response from Google Gemini model."""
+        if model_name not in self.gemini_models:
+            raise Exception(f"Gemini model '{model_name}' is not available.")
         
-        response = self.gemini_model.generate_content(question)
+        response = self.gemini_models[model_name].generate_content(question)
         token_count = getattr(response, 'token_count', 0)
         
         # For Gemini, we'll estimate input/output tokens as 50/50 split
         input_tokens = token_count // 2
         output_tokens = token_count - input_tokens
+        
+        # Calculate costs
+        pricing = PRICING.get(model_name, {})
+        input_cost = (input_tokens / 1_000_000) * pricing.get('input', 0)
+        output_cost = (output_tokens / 1_000_000) * pricing.get('output', 0)
         
         return {
             'content': response.text,
@@ -210,8 +209,9 @@ class LLMService:
                 'input_tokens': input_tokens,
                 'output_tokens': output_tokens,
                 'total_tokens': token_count,
-                'cost': self._calculate_cost(self.gemini_model_name, input_tokens, output_tokens),
-                'model': self.gemini_model_name,
+                'input_cost': input_cost,
+                'output_cost': output_cost,
+                'model': model_name,
                 'safety_ratings': getattr(response, 'safety_ratings', None)
             }
         } 
