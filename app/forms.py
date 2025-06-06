@@ -31,3 +31,8 @@ class QuestionForm(FlaskForm):
         Length(min=10, max=1000, message='Question must be between 10 and 1000 characters')
     ])
     submit = SubmitField('Ask Question')
+
+class AdminCreditForm(FlaskForm):
+    email = SelectField('Select User', choices=[])
+    credits = StringField('Credits to Add', validators=[DataRequired()])
+    submit = SubmitField('Add Credits')
