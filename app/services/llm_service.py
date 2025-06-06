@@ -32,7 +32,30 @@ PRICING = {
     'gemini-1.5-pro': {'input': 1.25, 'output': 5.0}
 }
 
-__all__ = ['LLMService', 'PRICING', 'MODEL_MAPPINGS']
+# Maximum output tokens for a 10-cent cost limit, capped at 16384
+MAX_OUTPUT_TOKENS = {
+    # OpenAI Models
+    'gpt-4.1': min(12500, 16384),
+    'gpt-4.1-mini': min(62500, 16384),
+    'gpt-4.1-nano': min(250000, 16384),
+    'gpt-4o-mini': min(166667, 16384),
+    'o4-mini': min(22727, 16384),
+    
+    # Anthropic Models
+    'claude-3-5-haiku-latest': min(25000, 8192),  # Claude 3.5 Haiku has a max of 8192
+    'claude-3-7-sonnet-latest': min(6667, 16384),
+    'claude-sonnet-4-20250514': min(6667, 16384),
+    'claude-opus-4-20250514': min(1333, 16384),
+    
+    # Google Models
+    'gemini-2.5-flash-preview-05-20': min(166667, 16384),
+    'gemini-2.5-pro-preview-06-05': min(10000, 16384),
+    'gemini-2.0-flash': min(250000, 16384),
+    'gemini-1.5-flash': min(333333, 16384),
+    'gemini-1.5-pro': min(20000, 16384)
+}
+
+__all__ = ['LLMService', 'PRICING', 'MODEL_MAPPINGS', 'MAX_OUTPUT_TOKENS']
 
 # Model display names and their corresponding API model names
 MODEL_MAPPINGS = {
@@ -124,13 +147,27 @@ class LLMService:
 
     def _get_gpt4_response(self, question: str, model_name: str) -> Dict:
         """Get response from OpenAI model."""
-        response = self.openai_client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": "You are a helpful AI assistant."},
-                {"role": "user", "content": question}
-            ]
-        )
+        max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
+        
+        # Use different parameter name for O4-mini model
+        if model_name == 'o4-mini':
+            response = self.openai_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "You are a helpful AI assistant."},
+                    {"role": "user", "content": question}
+                ],
+                max_completion_tokens=max_tokens
+            )
+        else:
+            response = self.openai_client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "You are a helpful AI assistant."},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=max_tokens
+            )
         
         input_tokens = response.usage.prompt_tokens
         output_tokens = response.usage.completion_tokens
@@ -156,9 +193,10 @@ class LLMService:
 
     def _get_claude_response(self, question: str, model_name: str) -> Dict:
         """Get response from Claude model."""
+        max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
         response = self.anthropic.messages.create(
             model=model_name,
-            max_tokens=1000,
+            max_tokens=max_tokens,
             messages=[
                 {"role": "user", "content": question}
             ]
@@ -191,7 +229,11 @@ class LLMService:
         if model_name not in self.gemini_models:
             raise Exception(f"Gemini model '{model_name}' is not available.")
         
-        response = self.gemini_models[model_name].generate_content(question)
+        max_tokens = MAX_OUTPUT_TOKENS.get(model_name, 1000)  # Default to 1000 if not found
+        response = self.gemini_models[model_name].generate_content(
+            question,
+            generation_config={"max_output_tokens": max_tokens}
+        )
         token_count = getattr(response, 'token_count', 0)
         
         # For Gemini, we'll estimate input/output tokens as 50/50 split
