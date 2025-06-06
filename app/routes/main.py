@@ -11,6 +11,10 @@ def index():
     else:
         return render_template('index.html', logged_in=False)
 
+@main_bp.route('/pricing')
+def pricing():
+    return render_template('pricing_chart.html')
+
 @main_bp.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404

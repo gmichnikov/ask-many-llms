@@ -38,6 +38,9 @@
                             </li>
                             {% endif %}
                         {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('main.pricing') }}" target="_blank">API Pricing</a>
+                        </li>
                     </ul>
                     <ul class="navbar-nav">
                         {% if current_user.is_authenticated %}
