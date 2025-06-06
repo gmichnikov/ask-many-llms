@@ -19,8 +19,13 @@
                             </a>
                         </h5>
                         <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Asked on {{ question.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
-                            <span class="badge bg-secondary">{{ question.responses|length }} responses</span>
+                            <div>
+                                <small class="text-muted">Asked on {{ question.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                <span class="badge bg-secondary ms-2">{{ question.responses|length }} responses</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-info">Total Cost: ${{ "%.5f"|format(question.total_cost) }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

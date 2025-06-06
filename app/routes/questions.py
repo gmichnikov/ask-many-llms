@@ -111,7 +111,15 @@ def view_question(question_id):
 @bp.route('/questions')
 @login_required
 def list_questions():
-    questions = Question.query.filter_by(user_id=current_user.id).order_by(Question.timestamp.desc()).all()
+    questions = Question.query.options(db.joinedload(Question.responses)).filter_by(user_id=current_user.id).order_by(Question.timestamp.desc()).all()
+    
+    # Calculate total costs for each question
+    for question in questions:
+        question.total_cost = sum(
+            (response.input_cost or 0.0) + (response.output_cost or 0.0)
+            for response in question.responses
+        )
+    
     return render_template('questions/list.html', questions=questions)
 
 @bp.route('/admin/questions')
@@ -121,7 +129,15 @@ def admin_list_questions():
         flash('You do not have permission to access this page.', 'error')
         return redirect(url_for('main.index'))
     
-    questions = Question.query.order_by(Question.timestamp.desc()).all()
+    questions = Question.query.options(db.joinedload(Question.responses)).order_by(Question.timestamp.desc()).all()
+    
+    # Calculate total costs for each question
+    for question in questions:
+        question.total_cost = sum(
+            (response.input_cost or 0.0) + (response.output_cost or 0.0)
+            for response in question.responses
+        )
+    
     return render_template('questions/admin_list.html', questions=questions)
 
 @bp.route('/admin/question/<int:question_id>/delete', methods=['POST'])
