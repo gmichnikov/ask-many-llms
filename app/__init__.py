@@ -5,6 +5,7 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
+import markdown
 
 load_dotenv()
 
@@ -37,6 +38,11 @@ def create_app():
     
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    
+    # Add markdown filter
+    @app.template_filter('markdown')
+    def markdown_filter(text):
+        return markdown.markdown(text, extensions=['fenced_code', 'tables', 'nl2br', 'sane_lists'])
     
     # Register blueprints
     from app.routes.main import main_bp

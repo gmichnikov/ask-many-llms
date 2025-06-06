@@ -14,3 +14,4 @@ openai==1.12.0
 anthropic==0.18.1
 google-generativeai==0.3.2
 aiohttp==3.9.3
+markdown==3.5.2
