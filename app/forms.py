@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, SelectMultipleField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, SelectMultipleField, BooleanField
 from wtforms.validators import DataRequired, Length, Email, ValidationError
 import pytz
 from app.models import User
@@ -43,6 +43,8 @@ class QuestionForm(FlaskForm):
     models = SelectMultipleField('Select Models (up to 5)', 
                                choices=get_model_choices,
                                validators=[DataRequired()])
+    
+    concise = BooleanField('Concise Mode', default=False)
     
     submit = SubmitField('Ask Question')
     

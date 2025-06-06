@@ -109,9 +109,13 @@ class LLMService:
         output_cost = (output_tokens / 1_000_000) * pricing['output']
         return input_cost + output_cost
 
-    def get_responses(self, question: str, selected_models: List[str]) -> List[Dict]:
+    def get_responses(self, question: str, selected_models: List[str], concise: bool = False) -> List[Dict]:
         """Get responses from selected LLMs for a given question."""
         responses = []
+        
+        # Add concise note to question if enabled
+        if concise:
+            question = f"{question}\n\nPlease provide a concise and focused response without unnecessary elaboration."
         
         for display_name in selected_models:
             model_name = MODEL_MAPPINGS[display_name]
@@ -267,20 +271,20 @@ class LLMService:
             formatted_responses.append(f"Response from {resp['llm_name']}:\n{resp['content']}\n")
         
         # Create the prompt
-        prompt = f"""Please analyze the following responses to this question and provide a brief summary of the key points of agreement and disagreement:
+        prompt = f"""Please analyze the following responses to this question and provide a very brief summary of the key points of agreement and disagreement:
 
 Question: {question}
 
 Responses:
 {''.join(formatted_responses)}
 
-Please provide a concise summary that:
-1. Highlights the main points of agreement between the responses
-2. Notes any significant disagreements or different perspectives
-3. Identifies any unique insights from specific models
-4. Keeps the summary brief and focused on the most important points
+Please provide an extremely concise summary that:
+1. Highlights only the most important points of agreement between the responses
+2. Notes only major disagreements or different perspectives
+3. Identifies only the most unique and valuable insights
+4. Keeps the summary as brief as possible - aim for 2-3 sentences maximum
 
-Format your response in clear, well-structured paragraphs."""
+Format your response in a single, focused paragraph OR in a few bullet points."""
 
         # Get the summary using Gemini 2.5 Flash
         model_name = 'gemini-2.5-flash-preview-05-20'

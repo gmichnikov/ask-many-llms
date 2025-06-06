@@ -25,11 +25,20 @@ def ask_question():
         db.session.add(question)
         db.session.commit()
         
+        # Log question creation
+        log_entry = LogEntry(
+            category='Ask Question',
+            actor_id=current_user.id,
+            description=f"User asked question: {question.content[:100]}..."
+        )
+        db.session.add(log_entry)
+        
         # Get responses from selected models
         llm_service = LLMService()
         responses = llm_service.get_responses(
             question=form.content.data,
-            selected_models=form.models.data
+            selected_models=form.models.data,
+            concise=form.concise.data
         )
         
         # Create response records
@@ -149,6 +158,14 @@ def admin_delete_question(question_id):
     
     question = Question.query.get_or_404(question_id)
     try:
+        # Log question deletion
+        log_entry = LogEntry(
+            category='Delete Question',
+            actor_id=current_user.id,
+            description=f"Admin deleted question {question_id} from user {question.user.email}"
+        )
+        db.session.add(log_entry)
+        
         db.session.delete(question)
         db.session.commit()
         flash('Question deleted successfully.', 'success')
