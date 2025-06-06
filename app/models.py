@@ -34,9 +34,16 @@ class Question(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     credits_used = db.Column(db.Integer, nullable=False, default=1)
+    summary_response_id = db.Column(db.Integer, db.ForeignKey('response.id'), nullable=True)
     
     user = db.relationship('User', backref=db.backref('questions', lazy=True))
-    responses = db.relationship('Response', backref='question', lazy=True, cascade='all, delete-orphan')
+    responses = db.relationship('Response', 
+                              backref=db.backref('question', lazy=True), 
+                              foreign_keys='Response.question_id',
+                              cascade='all, delete-orphan')
+    summary_response = db.relationship('Response', 
+                                     foreign_keys=[summary_response_id], 
+                                     uselist=False)
 
     def __repr__(self):
         return f'<Question {self.id}: {self.content[:50]}...>'

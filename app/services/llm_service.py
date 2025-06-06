@@ -214,4 +214,37 @@ class LLMService:
                 'model': model_name,
                 'safety_ratings': getattr(response, 'safety_ratings', None)
             }
+        }
+
+    def generate_summary(self, question: str, responses: List[Dict]) -> Dict:
+        """Generate a summary of the responses using Gemini 2.5 Flash."""
+        # Format the responses for the prompt
+        formatted_responses = []
+        for resp in responses:
+            formatted_responses.append(f"Response from {resp['llm_name']}:\n{resp['content']}\n")
+        
+        # Create the prompt
+        prompt = f"""Please analyze the following responses to this question and provide a brief summary of the key points of agreement and disagreement:
+
+Question: {question}
+
+Responses:
+{''.join(formatted_responses)}
+
+Please provide a concise summary that:
+1. Highlights the main points of agreement between the responses
+2. Notes any significant disagreements or different perspectives
+3. Identifies any unique insights from specific models
+4. Keeps the summary brief and focused on the most important points
+
+Format your response in clear, well-structured paragraphs."""
+
+        # Get the summary using Gemini 2.5 Flash
+        model_name = 'gemini-2.5-flash-preview-05-20'
+        response = self._get_gemini_response(prompt, model_name)
+        
+        return {
+            'llm_name': 'Gemini 2.5 Flash',
+            'content': response['content'],
+            'metadata': response['metadata']
         } 

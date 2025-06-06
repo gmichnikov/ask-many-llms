@@ -13,6 +13,41 @@
                 </div>
             </div>
 
+            {% if summary_response %}
+            <div class="card mb-4 summary-card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Response Analysis Summary
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="response-content markdown-body">
+                        {{ summary_response.content|markdown|safe }}
+                    </div>
+                    <div class="metadata mt-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <strong>Model:</strong> {{ summary_response.model_name }}
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <strong>Total Tokens:</strong> {{ summary_response.total_tokens }}
+                                </small>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">
+                                    <strong>Cost:</strong> ${{ "%.6f"|format(summary_response.input_cost + summary_response.output_cost) }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             {% for response in responses %}
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -164,6 +199,21 @@
 
 .markdown-body table tr:nth-child(2n) {
     background-color: #f6f8fa;
+}
+
+.summary-card {
+    border-left: 4px solid #6f42c1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.summary-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.summary-card .card-header h3 {
+    color: #6f42c1;
+    font-size: 1.4rem;
 }
 </style>
 {% endblock %} 
