@@ -4,6 +4,9 @@ import openai
 from anthropic import Anthropic
 import google.generativeai as genai
 import time
+import signal
+import threading
+from contextlib import contextmanager
 
 # Pricing per 1M tokens
 # Documentation:
@@ -56,6 +59,26 @@ MAX_OUTPUT_TOKENS = {
     'gemini-1.5-flash': min(333333, 16384),
     'gemini-1.5-pro': min(20000, 16384)
 }
+
+@contextmanager
+def timeout_handler(seconds):
+    """Context manager for timing out long-running operations."""
+    try:
+        # Try to use signal-based timeout (Unix-like systems)
+        def timeout_function(signum, frame):
+            raise TimeoutError(f"Operation timed out after {seconds} seconds")
+        
+        old_handler = signal.signal(signal.SIGALRM, timeout_function)
+        signal.alarm(seconds)
+        try:
+            yield
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+    except (AttributeError, ValueError):
+        # Fallback for systems that don't support SIGALRM (like Windows)
+        # Just yield without timeout - gunicorn timeout will handle it
+        yield
 
 __all__ = ['LLMService', 'PRICING', 'MODEL_MAPPINGS', 'MAX_OUTPUT_TOKENS']
 
@@ -157,25 +180,29 @@ class LLMService:
         
         start_time = time.time()
         
-        # Use different parameter name for O4-mini model
-        if model_name == 'o4-mini':
-            response = self.openai_client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant."},
-                    {"role": "user", "content": question}
-                ],
-                max_completion_tokens=max_tokens
-            )
-        else:
-            response = self.openai_client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": "You are a helpful AI assistant."},
-                    {"role": "user", "content": question}
-                ],
-                max_tokens=max_tokens
-            )
+        try:
+            with timeout_handler(90):  # 90 second timeout for OpenAI calls
+                # Use different parameter name for O4-mini model
+                if model_name == 'o4-mini':
+                    response = self.openai_client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": "You are a helpful AI assistant."},
+                            {"role": "user", "content": question}
+                        ],
+                        max_completion_tokens=max_tokens
+                    )
+                else:
+                    response = self.openai_client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": "You are a helpful AI assistant."},
+                            {"role": "user", "content": question}
+                        ],
+                        max_tokens=max_tokens
+                    )
+        except TimeoutError:
+            raise Exception(f"OpenAI model '{model_name}' request timed out after 90 seconds")
         
         response_time = time.time() - start_time
         
@@ -208,13 +235,17 @@ class LLMService:
         
         start_time = time.time()
         
-        response = self.anthropic.messages.create(
-            model=model_name,
-            max_tokens=max_tokens,
-            messages=[
-                {"role": "user", "content": question}
-            ]
-        )
+        try:
+            with timeout_handler(90):  # 90 second timeout for Anthropic calls
+                response = self.anthropic.messages.create(
+                    model=model_name,
+                    max_tokens=max_tokens,
+                    messages=[
+                        {"role": "user", "content": question}
+                    ]
+                )
+        except TimeoutError:
+            raise Exception(f"Anthropic model '{model_name}' request timed out after 90 seconds")
         
         response_time = time.time() - start_time
         
@@ -250,10 +281,14 @@ class LLMService:
         
         start_time = time.time()
         
-        response = self.gemini_models[model_name].generate_content(
-            question,
-            generation_config={"max_output_tokens": max_tokens}
-        )
+        try:
+            with timeout_handler(90):  # 90 second timeout for Gemini calls
+                response = self.gemini_models[model_name].generate_content(
+                    question,
+                    generation_config={"max_output_tokens": max_tokens}
+                )
+        except TimeoutError:
+            raise Exception(f"Gemini model '{model_name}' request timed out after 90 seconds")
         
         response_time = time.time() - start_time
         
